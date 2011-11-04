@@ -47,19 +47,30 @@ public:
 	map<int, int> relation, fd_table;
 
 	map<int, pipe_unit>::iterator iter,iter2;
-	
+	PG_pipe()
+	{
+		fd_table[0] = -1;
+		fd_table[1] = -1;
+		fd_table[2] = -1;
+	}
 	void show()
 	{
 
-		
+		map<int,int>::iterator i;
+		cerr << "pid " << getpid() << endl;
+		for (i = fd_table.begin(); i != fd_table.end(); ++i)
+		{
+			
+			if (i->second != 0)cerr << i->first << " " << i->second << endl;
+		}
 	}
 	void create(int q)
 	{
 		if (p_table.find(q) != p_table.end()) return;
 		
 		pipe(p_table[q].fd);
-		fd_table[p_table[q].fd[0]] = 1;
-		fd_table[p_table[q].fd[1]] = 2;
+		fd_table[p_table[q].fd[0]] = p_table[q].fd[0];
+		fd_table[p_table[q].fd[1]] = p_table[q].fd[1];
 		//cerr << "get" << p_table[q].fd[0] << " " << p_table[q].fd[1] << endl;
 	}
 	void close2(int q)
@@ -74,7 +85,16 @@ public:
 		dup2(a,b);
 		fd_table[b] = a;
 	}
-	
+	void clean_pipe2()
+	{
+		map<int,int>::iterator i;
+		for (i = fd_table.begin(); i != fd_table.end(); ++i)
+		{
+			
+			if (i->second > 0)
+				close2(i->second);
+		}
+	}
 	void clean_pipe(int q)
 	{
 		for (iter = p_table.begin(); iter != p_table.end(); ++iter)
@@ -352,6 +372,7 @@ int main()
 		{
 			Elie.fix_main(seq_no);
 			Elie.clean_pipe(seq_no);
+			Elie.show();
 			Rixia.Wait();
 
 		}
@@ -359,7 +380,8 @@ int main()
 		{
 			Elie.fix_stdin(seq_no);
 			Elie.fix_stdout(seq_no);
-			Elie.clean_pipe(seq_no);
+			Elie.clean_pipe2();
+			Elie.show();
 			if (Tio.redirect_to != "")
 			{
 				cerr << "detect red" << endl;
