@@ -17,6 +17,7 @@
 #define ROOT_DIC "/home/PG/PG/"
 #define DEBUG 0
 #define PIPEMAX 100000
+#define PIPEADD 10000000
 using namespace std;
 string i2s(int q)
 {
@@ -34,101 +35,106 @@ int s2i(string q)
 class PG_pipe
 {
 public:
-	map<string, int> pipe_read, pipe_write, time_stamp;
-	map<string, int>::iterator iter,iter2;
-	map<string, string> pipe_read_rev, pipe_write_rev;
-	map<int, int> read_table;
+	struct pipe_unit
+	{
+		int fd[2];
+		int flag;
+		pipe_unit(){flag = 0;}
+		
+	};
+
+	map<int, pipe_unit> p_table;
+	map<int, int> relation;
+	map<int, pipe_unit>::iterator iter,iter2;
+	
 	void show()
 	{
-		for (iter = pipe_read.begin(); iter != pipe_read.end(); ++iter)
-			cout << "r_pipe " << iter->first << " " << iter->second << endl;
-		for (iter = pipe_write.begin(); iter != pipe_write.end(); ++iter)
-			cout << "w_pipe " << iter->first << " " << iter->second << endl;
+
+		
 	}
-	void del(string q)
+	void create(int q)
 	{
-		//iter = pipe_write.find(q);
-		//if (iter != pipe_write.end()){close(iter->second);pipe_write.erase(iter);}
-		iter = pipe_read.find(q);
-		if (iter != pipe_read.end())
+		if (p_table.find(q) != p_table.end()) return;
+		pipe(p_table[q].fd);
+		//cerr << "get" << p_table[q].fd[0] << " " << p_table[q].fd[1] << endl;
+	}
+	void close2(int q)
+	{
+		//cerr << "pid " << getpid() << " close " << q << endl;
+		close(q);
+	}
+	void dup22(int a,int b)
+	{
+		//cerr << "pid " << getpid() << " dup " << a << " to " << b <<endl;
+		dup2(a,b);
+	}
+	
+	void clean_pipe(int q)
+	{
+		for (iter = p_table.begin(); iter != p_table.end(); ++iter)
 		{
-			
-			int tmp = read_table[iter->second];
-			cerr << "deling" << iter->first << " aiming" << tmp << endl; 
-			for (iter2 = pipe_write.begin(); iter2 != pipe_write.end(); ++iter2)
+			if (iter->first < q)
 			{
-				if(iter2->second == tmp)
-				{
-					cerr << "clean " << iter2->first << endl;
-					close(iter2->second);
-					pipe_write.erase(iter2);
-				}
 				
+				close2(iter->second.fd[1]);
+				//p_table.erase(iter);
 			}
-			close(iter->second);
-			pipe_read.erase(iter);
-			show();
-			cerr << "---" << endl;
 		}
 	}
-	void rename(string a, string b)
+	
+	void fix_stdin(int q)
 	{
-		iter = pipe_write.find(a);
-		if (iter != pipe_write.end()){int t = iter->second; pipe_write.erase(iter); pipe_write[b] = t;}
-		//else cerr << "ERROR!!" << endl;
-	}
-	void apply(string q)
-	{
-		//show();
-		//cerr << "applying " << q << endl;
-		iter = pipe_read.find(q);
-		if (iter != pipe_read.end())
+		
+		iter = p_table.find(q);
+		if (iter == p_table.end())
 		{
-			close(0);
-			dup2(iter->second,0);
-			close(iter->second);
-			//cerr << getpid() << " dup " << iter->first << " id:" << iter->second << " to 0" << endl;
-			pipe_read.erase(iter);
+			//cerr << "fix_stdin cant find pipe " << q << endl;
+			return;
 		}
-		iter = pipe_write.find(q);
-		if (iter != pipe_write.end())
-		{
-			close(1);
-			dup2(iter->second,1);
-			close(iter->second);
-			//cerr << getpid() << " dup " << iter->first << " id:" << iter->second << " to 1" << endl;
-			pipe_write.erase(iter);
-		}
-
-		//cerr << "after " << endl;
-		//show();
+		close2(0);
+		dup22(iter->second.fd[0], 0);
+		close2(iter->second.fd[0]);
 
 	}
-	void connect(string from, string to, int t_stamp)
+	void fix_stdout(int q)
 	{
-		iter = pipe_read.find(to);
-		if(iter != pipe_read.end())
+		int aim = relation[q];
+		iter = p_table.find(aim);
+		if (iter == p_table.end())
 		{
-			pipe_write[from] = read_table[pipe_read[to]];
-			return ;
+			//cerr << "fix_stdout cant find pipe " << aim << endl;
+			return;
 		}
-		int fd[2];
-		pipe(fd);
-		pipe_read[to] = fd[0];
-		pipe_write[from] = fd[1];
-		read_table[fd[0]] = fd[1];
-		//pipe_read_rev[to] = from;
-		//pipe_write_rev[from] = to;
-		//cout << "connect " << from << " to " << to << endl;
-		time_stamp[from] = time_stamp[to] = t_stamp;
-		//PIPE.push_back(pipe_unit(from,to));
+		close2(1);
+		dup22(iter->second.fd[1], 1);
+		close2(iter->second.fd[1]);
+		
 	}
+	void fix_main(int q)
+	{
+		iter = p_table.find(q);
+		if (iter == p_table.end())
+		{
+			//cerr << "fix_main cant find pipe " << q << endl;
+			return;
+		}
+		close2(iter->second.fd[0]);
+		close2(iter->second.fd[1]);
+	}
+	void connect(int a, int b)
+	{
+		cerr << "connect " << a << " to " << b << endl;
+		relation[a] = b;
+		create(b);
+		
+	}
+	int chk_connect(int q){return relation[q];}
 	void redirect_to_file(string q, string fn)
 	{
 		int fd = open(fn.c_str(),O_WRONLY | O_CREAT | O_TRUNC,700);
-		close(1);
-		dup2(fd,1);
-		close(fd);
+		close2(1);
+		dup22(fd,1);
+		close2(fd);
 	}
 	
 };
@@ -259,7 +265,7 @@ public:
 	int harmonics(string q)
 	{
 		int t_pid;
-		pool[q] = pool[pid] + "/" + q;
+		//pool[q] = pool[pid] + "/" + q;
 		//cout << q << " " << pid << endl;
 		if (t_pid = fork())
 		{
@@ -269,7 +275,7 @@ public:
 		else
 		{
 			//cerr << "parent " << pool[pid] << endl;
-			pid = q;
+			//pid = q;
 			return 0;
 		}
 	}
@@ -287,7 +293,34 @@ public:
 	
 	
 };
-
+void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
+{
+	PG_process Rixia;
+	int pid;
+	if (from == to)
+	{
+		Tio.exec_seg(from);
+	}
+	int fd[2];
+	pipe(fd);
+	if(pid = Rixia.harmonics("pipe"))
+	{
+		close(fd[1]);
+		close(0);
+		dup2(fd[0],0);
+		close(fd[0]);
+		Rixia.Wait();
+		pipe_exec(Elie,Tio,from+1,to);
+	}
+	else
+	{
+		close(fd[0]);
+		close(1);
+		dup2(fd[1],1);
+		close(fd[1]);
+		Tio.exec_seg(from);
+	}
+}
 int main()
 {
 	PG_pipe Elie;
@@ -302,60 +335,37 @@ int main()
 		Tio.parse();
 		//Tio.show();	
 		
-		string ori = "cmd_" + i2s(seq_no);
-		if(Tio.delay)
+		int pipe_to = 0;
+		if(Tio.delay) 
 		{
-			//cerr << "delay " << Tio.delay << endl;
-			string t = "cmd_" + i2s(seq_no + Tio.delay);
-			Elie.connect(ori, t, seq_no);
+
+			pipe_to = seq_no + Tio.delay;
+			Elie.connect(seq_no, pipe_to);
 		}
-		if (pid = Rixia.harmonics(ori))
+		if (pid = Rixia.harmonics(i2s(seq_no)))
 		{
-			Elie.del(ori);
+			Elie.fix_main(seq_no);
+			Elie.clean_pipe(seq_no);
 			Rixia.Wait();
-			//cerr << "finish waiting" << endl;
+
 		}
 		else
 		{
+			Elie.fix_stdin(seq_no);
+			Elie.fix_stdout(seq_no);
+			Elie.clean_pipe(seq_no);
+			if (Tio.redirect_to != "")
+			{
+				cerr << "detect red" << endl;
+				//Elie.redirect_to_file(ori, Tio.redirect_to);
+			}
+				
 			if(Tio.pipe_seg.size() > 2)
 			{
-				/*
-					| A | B | C | D | E |
-					      2   3   4   5
-					0   1   2   3   4   5   size = 6 
-
-				*/
-				Elie.rename(Tio.process_name[0], Tio.process_name[Tio.process_name.size()-1]);
-				for (int i = 0; i < Tio.process_name.size()-1; i++)
-				{
-					Elie.connect(Tio.process_name[i], Tio.process_name[i+1], seq_no);
-				}
-				for (int i = 0; i < Tio.process_name.size(); i++)
-				{
-
-					if (pid = Rixia.harmonics(ori))
-					{
-						Elie.del(Tio.process_name[i]);
-						//Rixia.Wait();
-					}
-					else
-					{
-						Elie.apply(Tio.process_name[i]);
-						if(i == Tio.process_name.size()-1 && Tio.redirect_to != "")
-							Elie.redirect_to_file(ori, Tio.redirect_to);
-						Tio.exec_seg(i);
-					}
-				}
-				exit(0);
+				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-1);
 			}
 			else
 			{
-				Elie.apply(ori);
-				if (Tio.redirect_to != "")
-				{
-					cerr << "detect red" << endl;
-					Elie.redirect_to_file(ori, Tio.redirect_to);
-				}
 				Tio.exec();
 			}
 		}
