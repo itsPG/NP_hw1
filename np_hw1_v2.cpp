@@ -85,29 +85,16 @@ public:
 		dup2(a,b);
 		fd_table[b] = a;
 	}
-	void clean_pipe2()
+	void clean_pipe()
 	{
 		map<int,int>::iterator i;
 		for (i = fd_table.begin(); i != fd_table.end(); ++i)
 		{
 			
-			if (i->second > 0)
+			if (i->second > 2)
 				close2(i->second);
 		}
 	}
-	void clean_pipe(int q)
-	{
-		for (iter = p_table.begin(); iter != p_table.end(); ++iter)
-		{
-			if (iter->first < q)
-			{
-				close2(iter->second.fd[0]);
-				close2(iter->second.fd[1]);
-				//p_table.erase(iter);
-			}
-		}
-	}
-	
 	void fix_stdin(int q)
 	{
 		
@@ -371,7 +358,6 @@ int main()
 		if (pid = Rixia.harmonics(i2s(seq_no)))
 		{
 			Elie.fix_main(seq_no);
-			Elie.clean_pipe(seq_no);
 			Elie.show();
 			Rixia.Wait();
 
@@ -380,7 +366,7 @@ int main()
 		{
 			Elie.fix_stdin(seq_no);
 			Elie.fix_stdout(seq_no);
-			Elie.clean_pipe2();
+			Elie.clean_pipe();
 			Elie.show();
 			if (Tio.redirect_to != "")
 			{

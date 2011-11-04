@@ -47,7 +47,12 @@ public:
 	map<int, int> relation, fd_table;
 
 	map<int, pipe_unit>::iterator iter,iter2;
-	
+	PG_pipe()
+	{
+		fd_table[0] = -1;
+		fd_table[1] = -1;
+		fd_table[2] = -1;
+	}
 	void show()
 	{
 
@@ -86,7 +91,7 @@ public:
 		for (i = fd_table.begin(); i != fd_table.end(); ++i)
 		{
 			
-			if (i->second > 0)
+			if (i->second > 2)
 				close2(i->second);
 		}
 	}
@@ -366,7 +371,6 @@ int main()
 		if (pid = Rixia.harmonics(i2s(seq_no)))
 		{
 			Elie.fix_main(seq_no);
-			Elie.clean_pipe(seq_no);
 			Elie.show();
 			Rixia.Wait();
 
@@ -375,7 +379,7 @@ int main()
 		{
 			Elie.fix_stdin(seq_no);
 			Elie.fix_stdout(seq_no);
-			Elie.clean_pipe2();
+			Elie.clean_pipe();
 			Elie.show();
 			if (Tio.redirect_to != "")
 			{
