@@ -358,16 +358,13 @@ int main()
 		if (pid = Rixia.harmonics(i2s(seq_no)))
 		{
 			Elie.fix_main(seq_no);
-			Elie.show();
 			Rixia.Wait();
-
 		}
 		else
 		{
 			Elie.fix_stdin(seq_no);
 			Elie.fix_stdout(seq_no);
 			Elie.clean_pipe();
-			Elie.show();
 			if (Tio.redirect_to != "")
 			{
 				cerr << "detect red" << endl;
