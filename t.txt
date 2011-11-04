@@ -1,0 +1,7 @@
+a.out
+makefile
+np_hw1_v2
+np_hw1_v2~
+np_hw1_v2.cpp
+np_hw1_v2.cpp~
+t.txt
