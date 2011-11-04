@@ -44,7 +44,8 @@ public:
 	};
 
 	map<int, pipe_unit> p_table;
-	map<int, int> relation;
+	map<int, int> relation,fd_table;
+
 	map<int, pipe_unit>::iterator iter,iter2;
 	
 	void show()
@@ -55,18 +56,23 @@ public:
 	void create(int q)
 	{
 		if (p_table.find(q) != p_table.end()) return;
+		
 		pipe(p_table[q].fd);
+		fd_table[p_table[q].fd[0]] = 1;
+		fd_table[p_table[q].fd[1]] = 2;
 		//cerr << "get" << p_table[q].fd[0] << " " << p_table[q].fd[1] << endl;
 	}
 	void close2(int q)
 	{
 		//cerr << "pid " << getpid() << " close " << q << endl;
 		close(q);
+		fd_table[q] = 0;
 	}
 	void dup22(int a,int b)
 	{
 		//cerr << "pid " << getpid() << " dup " << a << " to " << b <<endl;
 		dup2(a,b);
+		fd_table[b] = a;
 	}
 	
 	void clean_pipe(int q)
@@ -75,7 +81,7 @@ public:
 		{
 			if (iter->first < q)
 			{
-				
+				close2(iter->second.fd[0]);
 				close2(iter->second.fd[1]);
 				//p_table.erase(iter);
 			}
