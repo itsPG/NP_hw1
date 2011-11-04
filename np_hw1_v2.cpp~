@@ -308,11 +308,14 @@ public:
 };
 void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 {
+	cerr << "exec " << from << " " << to << endl;
 	PG_process Rixia;
 	int pid;
 	if (from == to)
 	{
 		Tio.exec_seg(from);
+		cerr << "error!" << endl;
+		return;
 	}
 	int fd[2];
 	pipe(fd);
@@ -358,16 +361,13 @@ int main()
 		if (pid = Rixia.harmonics(i2s(seq_no)))
 		{
 			Elie.fix_main(seq_no);
-			//Elie.show();
 			Rixia.Wait();
-
 		}
 		else
 		{
 			Elie.fix_stdin(seq_no);
 			Elie.fix_stdout(seq_no);
 			Elie.clean_pipe();
-			//Elie.show();
 			if (Tio.redirect_to != "")
 			{
 				cerr << "detect red" << endl;

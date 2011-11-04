@@ -308,11 +308,14 @@ public:
 };
 void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 {
+	cerr << "exec " << from << " " << to << endl;
 	PG_process Rixia;
 	int pid;
 	if (from == to)
 	{
 		Tio.exec_seg(from);
+		cerr << "error!" << endl;
+		return;
 	}
 	int fd[2];
 	pipe(fd);
@@ -374,6 +377,7 @@ int main()
 			if(Tio.pipe_seg.size() > 2)
 			{
 				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-1);
+				exit(0);
 			}
 			else
 			{
