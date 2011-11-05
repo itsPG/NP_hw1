@@ -246,19 +246,27 @@ public:
 	}
 	void exec(int from, int to)
 	{
-		cerr << "this is " << getpid() << endl;
+		//cerr << "this is " << getpid() << endl;
 		char **tmp = new char*[1001];
 		int i, cnt;
 		if(from > to)return;
 		//cerr << "from " << from << " to " << to << endl;
 		for (i = from,cnt = 0; i <= to; i++,cnt++)
 		{
+			//cerr << "use " << list[i] << "at" << i <<endl;
 			tmp[cnt] = new char[1001];
 			strcpy(tmp[cnt], list[i].c_str());
 		}
-		tmp[i] = NULL;
-		//for (int i = 0; tmp[i] != NULL; i++)cerr << "execvp " << tmp[i] << endl;
-		execvp(tmp[0], tmp);
+		tmp[cnt] = NULL;
+		//cerr << i << " is setted NULL" << endl;
+		//cerr << "s```````````````" << endl;
+		//for (int i = 0; tmp[i] != NULL; i++)cerr << "execvp-- " << tmp[i] << endl;
+		//cerr << "e```````````````" << endl;
+		if (execvp(tmp[0], tmp))
+		{
+			perror("excvp fail");
+			exit(0);
+		}
 	}
 	void exec() {exec(0,list.size()-1);}
 	void exec_seg(int q){exec(pipe_seg[q]+1, pipe_seg[q+1]-1);}
@@ -306,14 +314,87 @@ public:
 	
 	
 };
+class PG_TCP
+{
+public:
+	int c_fd, l_fd, pid;
+	int harmonics()
+	{
+		int pid, stat;
+		if (pid = fork())
+		{
+			waitpid(pid, &stat, 0);
+			return pid;
+		}
+		else
+		{
+			if (fork())
+			{
+				exit(0);
+			}
+			else return 0;
+		}
+	}
+	PG_TCP()
+	{
+		struct sockaddr_in sin;
+		struct sockaddr_in cin;
+		
+		socklen_t len;
+		char buf[10000]; 
+		char addr_p[INET_ADDRSTRLEN]; 
+		int port = 7000;
+		int n,r; 
+       
+		bzero(&sin, sizeof(sin)); 
+		sin.sin_family = AF_INET; 
+		sin.sin_addr.s_addr = INADDR_ANY; 
+		sin.sin_port = htons(port);
+    
+		l_fd = socket(AF_INET, SOCK_STREAM, 0); 
+		while(1)
+		{
+			r = bind(l_fd, (struct sockaddr *)&sin, sizeof(sin));
+			cout << "bind: " << r << endl;
+			if(r == 0)break;
+			usleep(500000);
+		}
+		r = listen(l_fd, 10); 
+		cout << "listen: " << r << endl;
+		printf("waiting ...\n");
+		while(1)
+		{
+			c_fd = accept(l_fd, (struct sockaddr *) &cin, &len); 
+			cout << "accept: " << c_fd << endl;
+			if (pid = harmonics())
+			{
+				cout << "parent" << endl;
+				close(c_fd);
+			}
+			else
+			{
+				close(l_fd);
+				dup2(c_fd, 0);
+				dup2(c_fd, 1);
+				//dup2(c_fd, 2);
+			}
+		}
+	}
+	~PG_TCP()
+	{
+		close(c_fd);
+	}
+}
 void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 {
 	cerr << "exec " << from << " " << to << endl;
+	//sleep(1);
 	PG_process Rixia;
 	int pid;
 	if (from == to)
 	{
 		Tio.exec_seg(from);
+		//cerr << "exec " << from << endl;
 		cerr << "error!" << endl;
 		return;
 	}
@@ -327,6 +408,7 @@ void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 		close(fd[0]);
 		Rixia.Wait();
 		pipe_exec(Elie,Tio,from+1,to);
+		return ;
 	}
 	else
 	{
@@ -335,6 +417,8 @@ void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 		dup2(fd[1],1);
 		close(fd[1]);
 		Tio.exec_seg(from);
+		//cerr << "exec " << from << endl;
+		exit(0);
 	}
 }
 int main()
@@ -345,7 +429,7 @@ int main()
 	int seq_no = 0,pid;
 	while (1)
 	{
-		cout << "% ";
+		cout << "pid is " << getpid() << " % ";
 		Tio.seq_no = ++seq_no;
 		Tio.read();
 		Tio.parse();
@@ -376,7 +460,9 @@ int main()
 				
 			if(Tio.pipe_seg.size() > 2)
 			{
-				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-1);
+				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-2);
+				exit(0);
+				cerr << "failed to exit" << endl;
 			}
 			else
 			{
