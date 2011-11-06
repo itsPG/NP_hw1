@@ -66,7 +66,6 @@ public:
 		cerr << "pid " << getpid() << endl;
 		for (i = fd_table.begin(); i != fd_table.end(); ++i)
 		{
-			
 			if (i->second != 0)cerr << i->first << " " << i->second << endl;
 		}
 	}
@@ -77,17 +76,15 @@ public:
 		pipe(p_table[q].fd);
 		fd_table[p_table[q].fd[0]] = p_table[q].fd[0];
 		fd_table[p_table[q].fd[1]] = p_table[q].fd[1];
-		//cerr << "get" << p_table[q].fd[0] << " " << p_table[q].fd[1] << endl;
+
 	}
 	void close2(int q)
 	{
-		//cerr << "pid " << getpid() << " close " << q << endl;
 		close(q);
 		fd_table[q] = 0;
 	}
 	void dup22(int a,int b)
 	{
-		//cerr << "pid " << getpid() << " dup " << a << " to " << b <<endl;
 		dup2(a,b);
 		fd_table[b] = a;
 	}
@@ -96,7 +93,6 @@ public:
 		map<int,int>::iterator i;
 		for (i = fd_table.begin(); i != fd_table.end(); ++i)
 		{
-			
 			if (i->second > 2)
 				close2(i->second);
 		}
@@ -105,11 +101,8 @@ public:
 	{
 		
 		iter = p_table.find(q);
-		if (iter == p_table.end())
-		{
-			//cerr << "fix_stdin cant find pipe " << q << endl;
-			return;
-		}
+		if (iter == p_table.end()) return;
+
 		close2(0);
 		dup22(iter->second.fd[0], 0);
 		close2(iter->second.fd[0]);
@@ -119,11 +112,8 @@ public:
 	{
 		int aim = relation[q];
 		iter = p_table.find(aim);
-		if (iter == p_table.end())
-		{
-			//cerr << "fix_stdout cant find pipe " << aim << endl;
-			return;
-		}
+		if (iter == p_table.end()) return;
+
 		close2(1);
 		dup22(iter->second.fd[1], 1);
 		if (fix_stderr) dup22(iter->second.fd[1], 2);
@@ -133,20 +123,16 @@ public:
 	void fix_main(int q)
 	{
 		iter = p_table.find(q);
-		if (iter == p_table.end())
-		{
-			//cerr << "fix_main cant find pipe " << q << endl;
-			return;
-		}
+		if (iter == p_table.end()) return;
+
 		close2(iter->second.fd[0]);
 		close2(iter->second.fd[1]);
 	}
 	void connect(int a, int b)
 	{
-		//cerr << "connect " << a << " to " << b << endl;
+
 		relation[a] = b;
 		create(b);
-		
 	}
 	int chk_connect(int q){return relation[q];}
 	void redirect_to_file(string fn)
@@ -487,9 +473,10 @@ int main()
 			else
 				Elie.fix_stdout(seq_no,0);
 			Elie.clean_pipe();
-			
 			if (Tio.redirect_to != "")
 				Elie.redirect_to_file(Tio.redirect_to);
+
+			
 			if(Tio.pipe_seg.size() > 2)
 			{
 				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-2);
@@ -502,4 +489,6 @@ int main()
 			}
 		}
 	}
+
+	
 }
