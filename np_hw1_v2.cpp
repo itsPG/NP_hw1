@@ -475,7 +475,6 @@ int main()
 			Elie.clean_pipe();
 			if (Tio.redirect_to != "")
 				Elie.redirect_to_file(Tio.redirect_to);
-
 			
 			if(Tio.pipe_seg.size() > 2)
 			{
@@ -489,6 +488,4 @@ int main()
 			}
 		}
 	}
-
-	
 }
