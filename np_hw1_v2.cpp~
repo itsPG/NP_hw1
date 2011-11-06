@@ -162,7 +162,7 @@ class PG_cmd
 {
 public:
 	string cmd;
-	vector<string> list, process_name;
+	vector<string> list;
 	string PATH[101];
 	vector<int> pipe_seg;
 	map<string, string> ENV;
@@ -197,6 +197,8 @@ public:
 		redirect_to = "";
 		delay = 0;
 		list.clear();
+		
+		/***********************************************************************************************/
 		for (int i = 0; i < cmd.size(); i++)
 		{
 			if (cmd[i] == ' ' || cmd[i] == '\t' || cmd[i] == '\n' || cmd[i] == '\r')
@@ -210,6 +212,7 @@ public:
 			else tmp += cmd[i];
 		}
 		if (tmp != "")list.push_back(tmp);
+		/***********************************************************************************************/
 		
 		for (int i = 0; i < list.size(); i++)
 		{
@@ -217,10 +220,8 @@ public:
 			{
 				redirect_to = list[i+1];
 				list.erase(list.begin() + i); list.erase(list.begin() + i);
-				//cerr << "Redirect to " << redirect_to << endl;
 			}
 		} 
-		
 		int end = list.size() - 1;
 		if(list[end][0] =='|' || list[end][0] == '!')
 		{
@@ -229,7 +230,6 @@ public:
 			delay = s2i(list[end]);
 			list.erase(list.begin() + end);
 		}
-		//cerr << "after erase" << endl;
 		pipe_seg.clear();
 		pipe_seg.push_back(-1);
 		for (int i = 1; i < list.size(); i++)
@@ -241,25 +241,11 @@ public:
 		}
 		pipe_seg.push_back(list.size());
 		
-		string seq_no2 = i2s(seq_no);
-		process_name.clear();
-		process_name.push_back(prefix + seq_no2);
-		for (int i = 2; i < pipe_seg.size(); i++)
-		{	
-			process_name.push_back(prefix + seq_no2 + "_" + i2s(i));	
-		}
+		/***********************************************************************************************/
 		if (list[0] == "exit")
 		{
 			exit_flag = 1;
 		}
-		if (0)
-		{
-			cout << "seg_size " << pipe_seg.size() << endl;
-			cout << "process_name_size " << process_name.size() << endl;
-			for (int i = 0; i < process_name.size(); i++)
-				cout << process_name[i] << " " << pipe_seg[i]+1 << " " << pipe_seg[i+1]-1 << endl;
-		}
-		
 	}
 	void show()
 	{
@@ -290,7 +276,6 @@ public:
 		{
 			cout << ENV[list[from+1]] << endl;
 			exit(0);
-			
 		}
 		struct stat statbuf;
 		bool success_flag = 0;
@@ -299,36 +284,34 @@ public:
 		{
 			
 			aim =ROOT_DIC + PATH[i] + "/" + list[from];
-			//cerr << aim << endl;
+
 			if (stat(aim.c_str(), &statbuf) == -1) continue;
 			else
 			{
 				success_flag = 1;
 				break;
 			}
-			
 		}
 		if (!success_flag)
 		{
 			cerr << "Unknown command: [" << list[from] << "]." << endl;
 			exit(0);
 		}
-		//cerr << "this is " << getpid() << endl;
+		
+		/***********************************************************************************************/
+		
 		char **tmp = new char*[1001];
 		int i, cnt;
 		if(from > to)return;
-		//cerr << "from " << from << " to " << to << endl;
+
 		for (i = from,cnt = 0; i <= to; i++,cnt++)
 		{
-			//cerr << "use " << list[i] << "at" << i <<endl;
+
 			tmp[cnt] = new char[1001];
 			strcpy(tmp[cnt], list[i].c_str());
 		}
 		tmp[cnt] = NULL;
-		//cerr << i << " is setted NULL" << endl;
-		//cerr << "s```````````````" << endl;
-		//for (int i = 0; tmp[i] != NULL; i++)cerr << "execvp-- " << tmp[i] << endl;
-		//cerr << "e```````````````" << endl;
+
 		if (execv(aim.c_str(), tmp))
 		{
 			perror("excvp fail");
@@ -342,44 +325,23 @@ public:
 class PG_process
 {
 public:
-	map<string, string> pool;
-
-	string pid;
-	PG_process()
+	int pid;
+	int harmonics()
 	{
-		pid = "init";
-		pool["init"] = "init";
-	}
-	int harmonics(string q)
-	{
-		int t_pid;
-		//pool[q] = pool[pid] + "/" + q;
-		//cout << q << " " << pid << endl;
-		if (t_pid = fork())
+		if (pid = fork())
 		{
-			//cerr << "child " << pool[q] << endl;
-			return t_pid;
+			return pid;
 		}
 		else
 		{
-			//cerr << "parent " << pool[pid] << endl;
-			//pid = q;
 			return 0;
 		}
-	}
-	int harmonics(string q,int q2)
-	{
-		harmonics(q + "_" +i2s(q2));
 	}
 	int Wait()
 	{
 		int stat;
 		wait(&stat);
 	}
-	string relation(){return pool[pid];}
-	
-	
-	
 };
 class PG_TCP
 {
@@ -450,27 +412,21 @@ public:
 			}
 		}
 	}
-	~PG_TCP()
-	{
-		
-	}
+
 };
 void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 {
-	//cerr << "exec " << from << " " << to << endl;
-	//sleep(1);
 	PG_process Rixia;
 	int pid;
 	if (from == to)
 	{
 		Tio.exec_seg(from);
-		//cerr << "exec " << from << endl;
 		cerr << "error!" << endl;
 		return;
 	}
 	int fd[2];
 	pipe(fd);
-	if(pid = Rixia.harmonics("pipe"))
+	if(pid = Rixia.harmonics())
 	{
 		close(fd[1]);
 		close(0);
@@ -487,7 +443,6 @@ void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 		dup2(fd[1],1);
 		close(fd[1]);
 		Tio.exec_seg(from);
-		//cerr << "exec " << from << endl;
 		exit(0);
 	}
 }
@@ -500,10 +455,11 @@ int main()
 	PG_TCP Noel;
 	chdir(ROOT_DIC);
 	Noel.go();
+	welcome_msg();
+	
 	
 	while (1)
 	{
-		//cout << "pid is " << getpid() << " % ";
 		cout << "% ";
 		Tio.seq_no = ++seq_no;
 		Tio.read();
@@ -518,7 +474,7 @@ int main()
 			Elie.connect(seq_no, pipe_to);
 		}
 		
-		if (pid = Rixia.harmonics(i2s(seq_no)))
+		if (pid = Rixia.harmonics())
 		{
 			Elie.fix_main(seq_no);
 			Rixia.Wait();
@@ -531,12 +487,9 @@ int main()
 			else
 				Elie.fix_stdout(seq_no,0);
 			Elie.clean_pipe();
-			if (Tio.redirect_to != "")
-			{
-				//cerr << "detect read" << endl;
-				Elie.redirect_to_file(Tio.redirect_to);
-			}
 			
+			if (Tio.redirect_to != "")
+				Elie.redirect_to_file(Tio.redirect_to);
 			if(Tio.pipe_seg.size() > 2)
 			{
 				pipe_exec(Elie, Tio, 0, Tio.pipe_seg.size()-2);
