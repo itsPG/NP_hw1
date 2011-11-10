@@ -150,7 +150,7 @@ public:
 	string cmd;
 	vector<string> list;
 	string PATH[101];
-	vector<int> pipe_seg;
+	vector<int> pipe_seg,pipe_seg_flag;
 	map<string, string> ENV;
 	int delay, delay_type;
 	int seq_no, PATH_size;
@@ -217,12 +217,14 @@ public:
 			list.erase(list.begin() + end);
 		}
 		pipe_seg.clear();
+		pipe_seg_flag.clear();
 		pipe_seg.push_back(-1);
 		for (int i = 1; i < list.size(); i++)
 		{	
-			if (list[i] == "|")
+			if (list[i] == "|" || list[i] == "!")
 			{
 				pipe_seg.push_back(i);
+				pipe_seg_flag.push_back(list[i] == "!" ? 1:0);
 			}			
 		}
 		pipe_seg.push_back(list.size());
@@ -427,6 +429,11 @@ void pipe_exec(PG_pipe &Elie, PG_cmd &Tio, int from, int to)
 		close(fd[0]);
 		close(1);
 		dup2(fd[1],1);
+		if (Tio.pipe_seg_flag[from])
+		{
+			close(2);
+			dup2(fd[1],2);
+		}
 		close(fd[1]);
 		Tio.exec_seg(from);
 		exit(0);
